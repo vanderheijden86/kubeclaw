@@ -358,6 +358,59 @@ nodeOptions: "--max-old-space-size=1536"
 #       value: "http://proxy.corp.example.com:3128"
 extraEnv: []
 
+# Extra envFrom entries for the Gateway container. Useful for loading additional
+# ConfigMaps or Secrets as env vars without listing each key individually.
+# Example:
+#   extraEnvFrom:
+#     - secretRef:
+#         name: my-extra-secret
+#     - configMapRef:
+#         name: my-extra-config
+extraEnvFrom: []
+
+# Extra volumes attached to the Gateway pod. Use together with extraVolumeMounts
+# to mount Secrets/ConfigMaps/PVCs that the chart does not natively manage — for
+# example, OAuth credentials for a custom CLI baked into the image, or a read-only
+# company-wide config.
+# Example:
+#   extraVolumes:
+#     - name: google-credentials
+#       secret:
+#         secretName: google-credentials
+#     - name: app-config
+#       configMap:
+#         name: app-config
+extraVolumes: []
+
+# Extra volume mounts for the Gateway container. Mount names must match the
+# volumes declared in extraVolumes.
+# Example:
+#   extraVolumeMounts:
+#     - name: google-credentials
+#       mountPath: /secrets/google
+#       readOnly: true
+#     - name: app-config
+#       mountPath: /config/app
+#       readOnly: true
+extraVolumeMounts: []
+
+# Extra init containers run before the built-in fix-permissions / dns-init
+# containers. Useful for pre-seeding the state PVC with files from Secrets or
+# ConfigMaps (e.g. OAuth token bootstrap), fetching remote config, etc.
+# Each entry is a standard Kubernetes container spec.
+# Example (seed a file from a Secret into the state PVC on first startup):
+#   extraInitContainers:
+#     - name: seed-credentials
+#       image: busybox:1.36
+#       command: ["sh", "-c", "cp /src/credentials.json /data/credentials.json"]
+#       volumeMounts:
+#         - name: google-credentials   # from extraVolumes
+#           mountPath: /src
+#           readOnly: true
+#         - name: state                 # the built-in state PVC
+#           mountPath: /data
+extraInitContainers: []
+
 # ------------------------------------------------------------------------------
 # Resources
 # ------------------------------------------------------------------------------

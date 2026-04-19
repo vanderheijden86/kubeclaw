@@ -73,8 +73,11 @@ spec:
       # ---------------------------------------------------------------------------
       # initContainers
       # ---------------------------------------------------------------------------
-      {{- if or .Values.persistence.fixPermissions.enabled .Values.egressFilter.enabled }}
+      {{- if or .Values.persistence.fixPermissions.enabled .Values.egressFilter.enabled .Values.extraInitContainers }}
       initContainers:
+        {{- with .Values.extraInitContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         {{- if .Values.persistence.fixPermissions.enabled }}
         # fix-permissions: normalize state dir ownership/mode for secure runtime.
         - name: fix-permissions
@@ -208,6 +211,9 @@ spec:
                 name: {{ include "kubeclaw.fullname" . }}-env
             - secretRef:
                 name: {{ include "kubeclaw.secretName" . }}
+            {{- with .Values.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - name: {{ include "kubeclaw.statePvcName" . }}
               mountPath: /home/node/.openclaw
@@ -234,6 +240,9 @@ spec:
             {{- if .Values.obsidian.enabled }}
             - name: {{ include "kubeclaw.obsidianPvcName" . }}
               mountPath: {{ .Values.obsidian.mountPath }}
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           securityContext:
             runAsNonRoot: true
@@ -402,6 +411,9 @@ spec:
         {{- if and .Values.tailscale.ssh.enabled (not .Values.tailscale.ssh.persistState) }}
         - name: ts-state
           emptyDir: {}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
 
   # ---------------------------------------------------------------------------
