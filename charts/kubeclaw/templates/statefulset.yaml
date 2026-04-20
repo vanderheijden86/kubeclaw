@@ -263,36 +263,37 @@ spec:
           # -----------------------------------------------------------------------
 
           # Startup probe: TCP check until the Gateway binds port 18789.
-          # Allow up to 5 minutes for first startup (30 * 10s).
+          # Allow up to 5 minutes for first startup (30 * 10s by default).
           startupProbe:
             tcpSocket:
               port: gateway
-            initialDelaySeconds: 5
-            failureThreshold: 30
-            periodSeconds: 10
-            timeoutSeconds: 3
+            initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds | default 5 }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold | default 30 }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds | default 3 }}
 
-          # Liveness probe: restart if the gateway becomes unresponsive.
+          # Liveness probe: /healthz returns {"ok":true,"status":"live"}.
+          # Uses httpGet (cheap, in-process) instead of exec node dist/index.js
+          # health — the CLI variant cold-starts Node and can take 20–35s on
+          # newer OpenClaw builds, which exceeds any realistic probe timeout.
           livenessProbe:
-            exec:
-              command:
-                - node
-                - dist/index.js
-                - health
-            failureThreshold: 3
-            periodSeconds: 30
-            timeoutSeconds: 10
+            httpGet:
+              path: /healthz
+              port: gateway
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold | default 3 }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds | default 30 }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds | default 5 }}
 
-          # Readiness probe: remove from Service endpoints when not ready.
+          # Readiness probe: /readyz returns {"ready":bool,"failing":[...],...}.
+          # The kubelet treats 2xx as ready and anything else as not-ready, so
+          # OpenClaw's dependency-ready aggregation naturally flows through.
           readinessProbe:
-            exec:
-              command:
-                - node
-                - dist/index.js
-                - health
-            failureThreshold: 3
-            periodSeconds: 10
-            timeoutSeconds: 10
+            httpGet:
+              path: /readyz
+              port: gateway
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold | default 3 }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds | default 5 }}
 
         # -------------------------------------------------------------------------
         # Chromium sidecar (optional)

@@ -423,6 +423,31 @@ resources:
     memory: 2Gi
 
 # ------------------------------------------------------------------------------
+# Gateway health probes
+# Liveness hits GET /healthz and readiness hits GET /readyz on the gateway
+# port. Both are in-process HTTP handlers (<100ms). Do NOT switch back to
+# exec probes that run `node dist/index.js health` — that CLI cold-starts a
+# fresh Node process per probe and can take 20–35 s on newer OpenClaw builds.
+# ------------------------------------------------------------------------------
+probes:
+  # Startup: tcpSocket check on the gateway port. Cheap, fast.
+  startup:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 3
+  # Liveness: GET /healthz
+  liveness:
+    periodSeconds: 30
+    failureThreshold: 3
+    timeoutSeconds: 5
+  # Readiness: GET /readyz
+  readiness:
+    periodSeconds: 10
+    failureThreshold: 3
+    timeoutSeconds: 5
+
+# ------------------------------------------------------------------------------
 # Service
 # The Gateway multiplexes WebSocket + HTTP Control UI on port 18789.
 # ------------------------------------------------------------------------------
