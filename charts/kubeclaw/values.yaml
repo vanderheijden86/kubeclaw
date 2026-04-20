@@ -118,7 +118,7 @@ config:
         "defaultProfile": "default",
         "profiles": {
           "default": {
-            "cdpUrl": "http://kubeclaw-chromium:9222",
+            "cdpUrl": "http://127.0.0.1:9222",
             "color": "#4285F4"
           }
         }
@@ -512,15 +512,32 @@ networkPolicy:
     allowAll: false
 
 # ------------------------------------------------------------------------------
-# Chromium Deployment (remote CDP)
-# Deploys Chromium as a standalone Deployment + ClusterIP Service. The Gateway
-# connects via browser.profiles.default.cdpUrl = http://<release>-chromium:9222.
-# CDP port 9222 is exposed as a ClusterIP Service (cluster-internal only).
+# Chromium (remote CDP)
+# Two deployment topologies are supported via `chromium.mode`:
+#
+#   mode: sidecar     (DEFAULT, recommended)
+#     Chromium runs as a container in the Gateway pod. The Gateway connects
+#     via cdpUrl=http://127.0.0.1:9222 — same netns, no Service, no DNS.
+#     This sidesteps Chrome's DNS-rebinding guard, which rejects any Host
+#     header that isn't "localhost" or an IP literal (so connecting via a
+#     K8s Service DNS name returns 400). Use this for single-tenant gateways.
+#
+#   mode: deployment  (legacy)
+#     Chromium runs as a separate Deployment + ClusterIP Service. Required
+#     if you want to share one Chromium instance across multiple Gateways,
+#     or expose CDP for external debugging. NOTE: with this mode you MUST
+#     override cdpUrl to use the Chromium Service's ClusterIP (not its DNS
+#     name) to avoid the Host-header rejection described above — or place
+#     a host-rewriting proxy (socat/nginx) between gateway and chromium.
+#
 # NOTE: Running Chromium in containers often requires --no-sandbox; read the
 # security notes in the values below before enabling.
 # ------------------------------------------------------------------------------
 chromium:
   enabled: true
+  # Deployment topology. See the comment block above for the tradeoffs.
+  # Valid values: "sidecar" (default) | "deployment".
+  mode: sidecar
   image:
     repository: zenika/alpine-chrome
     tag: "124"
@@ -529,6 +546,10 @@ chromium:
     pullPolicy: IfNotPresent
   # Container port for Chrome DevTools Protocol.
   cdpPort: 9222
+  # Size of the emptyDir backing Chromium's /tmp (user-data-dir + cache).
+  # Only applies in sidecar mode. Standalone Deployment mode uses its own
+  # 100Mi emptyDir (see chromium-deployment.yaml).
+  cacheSizeLimit: "512Mi"
   # Resources for the Chromium Deployment.
   resources:
     requests:
