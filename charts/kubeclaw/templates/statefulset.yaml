@@ -286,6 +286,61 @@ spec:
             timeoutSeconds: 10
 
         # -------------------------------------------------------------------------
+        # Chromium sidecar (optional)
+        # Headless Chromium for the browser tool, exposed to the Gateway via CDP
+        # on 127.0.0.1:9222. Running in-pod (shared netns) means the Gateway's
+        # CDP client sends Host: 127.0.0.1, which satisfies Chrome's DNS-rebinding
+        # guard (a Service DNS name like "kubeclaw-chromium" would be rejected).
+        # See chromium.mode in values.yaml for the alternative standalone topology.
+        # -------------------------------------------------------------------------
+        {{- if and .Values.chromium.enabled (eq (.Values.chromium.mode | default "sidecar") "sidecar") }}
+        - name: chromium
+          image: {{ .Values.chromium.image.repository }}:{{ .Values.chromium.image.tag }}{{ if .Values.chromium.image.digest }}@{{ .Values.chromium.image.digest }}{{ end }}
+          imagePullPolicy: {{ .Values.chromium.image.pullPolicy }}
+          command: ["chromium-browser"]
+          {{- with .Values.chromium.extraArgs }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: XDG_CACHE_HOME
+              value: /tmp
+          ports:
+            - name: cdp
+              containerPort: {{ .Values.chromium.cdpPort }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.chromium.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.chromium.securityContext | nindent 12 }}
+          volumeMounts:
+            # Dedicated emptyDir so Chromium's user-data-dir and cache do not
+            # collide with the Gateway's /tmp.
+            - name: chromium-cache
+              mountPath: /tmp
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.chromium.cdpPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.chromium.cdpPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 6
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.chromium.cdpPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+        {{- end }}
+
+        # -------------------------------------------------------------------------
         # Tailscale sidecar (optional)
         # Provides SSH access into the pod via the tailnet.
         # -------------------------------------------------------------------------
@@ -402,6 +457,11 @@ spec:
         {{- if and .Values.tailscale.ssh.enabled (not .Values.tailscale.ssh.persistState) }}
         - name: ts-state
           emptyDir: {}
+        {{- end }}
+        {{- if and .Values.chromium.enabled (eq (.Values.chromium.mode | default "sidecar") "sidecar") }}
+        - name: chromium-cache
+          emptyDir:
+            sizeLimit: {{ .Values.chromium.cacheSizeLimit | default "512Mi" }}
         {{- end }}
 
   # ---------------------------------------------------------------------------
