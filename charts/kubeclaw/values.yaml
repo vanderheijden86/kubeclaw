@@ -394,6 +394,18 @@ extraVolumes: []
 #       readOnly: true
 extraVolumeMounts: []
 
+# Extra sidecar containers rendered verbatim into the Gateway pod. Use for in-pod
+# helpers that must reach the Gateway over loopback (127.0.0.1), such as the
+# cross-tenant oracle receiver. Pair with extraVolumes for any mounted config.
+# Example:
+#   extraContainers:
+#     - name: oracle
+#       image: my-image:latest
+#       command: ["node", "/oracle/server.js"]
+#       ports:
+#         - { name: oracle, containerPort: 8080 }
+extraContainers: []
+
 # Extra init containers run before the built-in fix-permissions / dns-init
 # containers. Useful for pre-seeding the state PVC with files from Secrets or
 # ConfigMaps (e.g. OAuth token bootstrap), fetching remote config, etc.

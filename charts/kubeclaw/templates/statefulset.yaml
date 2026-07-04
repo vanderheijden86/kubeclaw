@@ -444,6 +444,17 @@ spec:
             timeoutSeconds: 3
         {{- end }}
 
+        # -------------------------------------------------------------------------
+        # Extra sidecar containers (optional, verbatim)
+        # Rendered as-is into the pod. Used for in-pod helpers that must reach the
+        # Gateway over loopback (127.0.0.1), e.g. the cross-tenant oracle receiver.
+        # Define the container spec in values (extraContainers); pair with
+        # extraVolumes / extraVolumeMounts as needed.
+        # -------------------------------------------------------------------------
+        {{- with .Values.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
       # ---------------------------------------------------------------------------
       # Volumes (non-PVC)
       # ---------------------------------------------------------------------------
