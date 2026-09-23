@@ -76,7 +76,10 @@ spec:
       {{- if or .Values.persistence.fixPermissions.enabled .Values.egressFilter.enabled .Values.extraInitContainers }}
       initContainers:
         {{- with .Values.extraInitContainers }}
-        {{- toYaml . | nindent 8 }}
+        {{- /* tpl lets an init container reuse the gateway image with
+               image: '{{ include "kubeclaw.image" . }}', so it cannot drift
+               from the tag a release pins. */}}
+        {{- tpl (toYaml .) $ | nindent 8 }}
         {{- end }}
         {{- if .Values.persistence.fixPermissions.enabled }}
         # fix-permissions: normalize state dir ownership/mode for secure runtime.

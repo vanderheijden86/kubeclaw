@@ -409,7 +409,8 @@ extraContainers: []
 # Extra init containers run before the built-in fix-permissions / dns-init
 # containers. Useful for pre-seeding the state PVC with files from Secrets or
 # ConfigMaps (e.g. OAuth token bootstrap), fetching remote config, etc.
-# Each entry is a standard Kubernetes container spec.
+# Each entry is a standard Kubernetes container spec, rendered through tpl:
+# image: '{{ include "kubeclaw.image" . }}' runs the gateway's own image.
 # Example (seed a file from a Secret into the state PVC on first startup):
 #   extraInitContainers:
 #     - name: seed-credentials
