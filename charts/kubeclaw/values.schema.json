@@ -3,6 +3,11 @@
   "title": "OpenClaw Helm Chart Values",
   "type": "object",
   "properties": {
+    "tmpSizeLimit": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*(Ki|Mi|Gi)$",
+      "description": "Size limit of the gateway /tmp emptyDir. Going over it evicts the whole pod."
+    },
     "replicaCount": {
       "type": "integer",
       "const": 1,

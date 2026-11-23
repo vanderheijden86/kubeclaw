@@ -350,6 +350,13 @@ memory:
 # ------------------------------------------------------------------------------
 nodeOptions: "--max-old-space-size=1536"
 
+# -- Size limit of the gateway's /tmp emptyDir. Going over it evicts the whole
+# pod (gateway and sidecars). OpenClaw keeps its temp root in /tmp/openclaw;
+# a Codex-hosted web search (tools.web.search.provider: codex) starts a bounded
+# Codex turn there with a fresh CODEX_HOME that syncs the plugin catalog
+# (~105MB per search in OpenClaw 2026.9.5), so tenants using it need more.
+tmpSizeLimit: "100Mi"
+
 # Extra environment variables injected into the Gateway container.
 # Accepts standard Kubernetes env-var objects (name/value or valueFrom).
 # Example:
